@@ -129,6 +129,6 @@ exports.handler = async (event, context, callback) => {
     const buffer = await resizeImage(origimage);
     if (!buffer) return;
 
-    // Upload the thumbnail image to the destination bucket
+    // Upload the resized image to the destination bucket
     await uploadResizedImage(buffer, { fileName, srcKey, srcBucket, dstKey, dstBucket });
 };
