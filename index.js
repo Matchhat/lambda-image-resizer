@@ -101,7 +101,7 @@ exports.handler = async (event, context, callback) => {
     const srcKey = decodeURIComponent(
         event.Records[0].s3.object.key.replace(/\+/g, " ")
     );
-    const dstBucket = srcBucket + "-test";
+    const dstBucket = srcBucket + "-resized";
     const dstKey = "resized-" + srcKey;
 
     // Infer the image type from the file suffix.
