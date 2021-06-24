@@ -22,17 +22,17 @@ async function getOriginalImage(srcKey, srcBucket) {
     }
 }
 
-// image size in pixel
+// image size in pixel (based on wordpress predetermined image sizes)
 const imageSize = {
-    sm: 200,
-    md: 400,
-    lg: 600,
-    xlg: 800
+    thumbnail: 150,
+    md: 300,
+    lg: 1024,
+    xlg: 1500
 };
 
 async function resizeImage(origimage) {
     // set thumbnail width. Resize will set the height automatically to maintain aspect ratio.
-    const width = 200;
+    // const width = 200;
     return await Promise.all(
         Object.keys(imageSize).map(async key => {
             // Use the sharp module to resize the image and save in a buffer.
@@ -53,21 +53,24 @@ async function resizeImage(origimage) {
 
 async function uploadResizedImage(
     buffers,
-    { fileName, srcKey, srcBucket, dstKey, dstBucket }
+    { fileName, srcKey, srcBucket, imagesPathParam, avatarPathParam, dstBucket }
 ) {
-    const imageSizeKeys = Object.keys(imageSize);
+    const imageSizeKeys = Object.keys(imageSize)
+    let dstKey;
     await Promise.all(
         buffers.map(async (buffer, index) => {
             const imgSize = imageSizeKeys[index];
+            dstKey = `${avatarPathParam}/${imagesPathParam}/compressed/${imgSize}/${fileName}-${imgSize}.png`
             try {
                 const destparams = {
                     Bucket: dstBucket,
-                    Key: `${imgSize}/${fileName}-${imgSize}.png`,
+                    Key: dstKey,
                     Body: buffer,
                     ContentType: "image"
                 };
 
                 const putResult = await s3.putObject(destparams).promise();
+                putResult.then(res => console.log(res)).catch(err => console.error(err))
             } catch (error) {
                 console.log(error);
                 return;
@@ -89,6 +92,10 @@ async function uploadResizedImage(
     );
 }
 
+// avatar/images/raw
+// avatar/images/compressed
+// avatar/images/compressed/{sm/lg/md/xl}
+
 exports.handler = async (event, context, callback) => {
     // Read options from the event parameter.
     console.log(
@@ -96,24 +103,31 @@ exports.handler = async (event, context, callback) => {
         util.inspect(event, { depth: 5 })
     );
     const srcBucket = event.Records[0].s3.bucket.name;
-    console.log("srcBucket", srcBucket);
+    // console.log("srcBucket", srcBucket);
     // Object key may have spaces or unicode non-ASCII characters.
     const srcKey = decodeURIComponent(
         event.Records[0].s3.object.key.replace(/\+/g, " ")
     );
-    const dstBucket = srcBucket + "-resized";
-    const dstKey = "resized-" + srcKey;
+    console.log('srcKey', srcKey)
+    const dstBucket = srcBucket;
+    const keyPath = srcKey.split('/');
+    console.log(keyPath);
+    const avatarPathParam = keyPath[0];
+    const imagesPathParam = keyPath[1];
+    const rawPathParam = keyPath[2];
+    const filePathParam = keyPath[3];
+    // const dstKey = "resized-" + srcKey;
+
+    // console.log(typeMatch);
+    // if (!typeMatch) {
+    //     console.log("Could not determine the image type.");
+    //     return;
+    // }
+    // Extract filename
+    const fileName = filePathParam.replace(/\.([^.]*)$/, "");
 
     // Infer the image type from the file suffix.
     const typeMatch = srcKey.match(/\.([^.]*)$/);
-    if (!typeMatch) {
-        console.log("Could not determine the image type.");
-        return;
-    }
-
-    // Extract filename
-    const fileName = srcKey.replace(/\.([^.]*)$/, "");
-
     // Check that the image type is supported
     const imageType = typeMatch[1].toLowerCase();
     if (imageType !== "jpg" && imageType !== "jpeg" && imageType !== "png") {
@@ -130,5 +144,6 @@ exports.handler = async (event, context, callback) => {
     if (!buffer) return;
 
     // Upload the resized image to the destination bucket
-    await uploadResizedImage(buffer, { fileName, srcKey, srcBucket, dstKey, dstBucket });
+    await uploadResizedImage(buffer, { fileName, srcKey, srcBucket, dstBucket, rawPathParam, imagesPathParam, avatarPathParam });
 };
+

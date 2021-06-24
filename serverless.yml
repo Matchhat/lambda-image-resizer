@@ -31,4 +31,6 @@ functions:
       - s3:
           bucket: matchhat-qhkm
           event: s3:ObjectCreated:*
+          rules:
+            - prefix: avatar/images/raw/
           existing: true
