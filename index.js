@@ -66,11 +66,13 @@ async function uploadResizedImage(
                     Bucket: dstBucket,
                     Key: dstKey,
                     Body: buffer,
-                    ContentType: "image"
+                    ContentType: "image",
+                    ACL: 'public-read'
                 };
 
                 const putResult = await s3.putObject(destparams).promise();
-                putResult.then(res => console.log(res)).catch(err => console.error(err))
+                console.log('putResult', putResult);
+                // putResult.then(res => console.log(res)).catch(err => console.error(err))
             } catch (error) {
                 console.log(error);
                 return;
