@@ -16,19 +16,22 @@ provider:
   deploymentBucket:
     blockPublicAccess: true
     name: matchhat-sls-deployment
+    # name: test-matchhat
     # tags:
     #   key1: value1
     #   key2: value2
-  # deploymentPrefix: serverless
+  deploymentPrefix: serverless
 
 functions:
   lambda-s3-trigger:
     handler: index.handler
     name: ${sls:stage}-image-resizer
     description: resize image after upload
+    # role: arn:aws:iam::102431695831:role/lambda-s3-role
     role: arn:aws:iam::307512938321:role/lambda-s3-role
     events:
       - s3:
+          # bucket: matchhat-qhkm
           bucket: mhat-dev
           event: s3:ObjectCreated:*
           rules:

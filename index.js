@@ -39,6 +39,9 @@ async function resizeImage(origimage) {
             try {
                 let buffer = await sharp(origimage.Body)
                     .resize(imageSize[key])
+                    .jpeg({
+                        quality: 80
+                    })
                     .toBuffer();
                 return buffer;
             } catch (error) {
@@ -60,7 +63,7 @@ async function uploadResizedImage(
     await Promise.all(
         buffers.map(async (buffer, index) => {
             const imgSize = imageSizeKeys[index];
-            dstKey = `${avatarPathParam}/${imagesPathParam}/compressed/${imgSize}/${fileName}-${imgSize}.png`
+            dstKey = `${avatarPathParam}/${imagesPathParam}/compressed/${imgSize}/${fileName}-${imgSize}`
             try {
                 const destparams = {
                     Bucket: dstBucket,
@@ -72,7 +75,6 @@ async function uploadResizedImage(
 
                 const putResult = await s3.putObject(destparams).promise();
                 console.log('putResult', putResult);
-                // putResult.then(res => console.log(res)).catch(err => console.error(err))
             } catch (error) {
                 console.log(error);
                 return;
@@ -105,7 +107,7 @@ exports.handler = async (event, context, callback) => {
         util.inspect(event, { depth: 5 })
     );
     const srcBucket = event.Records[0].s3.bucket.name;
-    // console.log("srcBucket", srcBucket);
+
     // Object key may have spaces or unicode non-ASCII characters.
     const srcKey = decodeURIComponent(
         event.Records[0].s3.object.key.replace(/\+/g, " ")
@@ -120,22 +122,17 @@ exports.handler = async (event, context, callback) => {
     const filePathParam = keyPath[3];
     // const dstKey = "resized-" + srcKey;
 
-    // console.log(typeMatch);
-    // if (!typeMatch) {
-    //     console.log("Could not determine the image type.");
-    //     return;
-    // }
     // Extract filename
     const fileName = filePathParam.replace(/\.([^.]*)$/, "");
 
     // Infer the image type from the file suffix.
-    const typeMatch = srcKey.match(/\.([^.]*)$/);
+    // const typeMatch = srcKey.match(/\.([^.]*)$/);
     // Check that the image type is supported
-    const imageType = typeMatch[1].toLowerCase();
-    if (imageType !== "jpg" && imageType !== "jpeg" && imageType !== "png") {
-        console.log(`Unsupported image type: ${imageType}`);
-        return;
-    }
+    // const imageType = typeMatch[1].toLowerCase();
+    // if (imageType !== "jpg" && imageType !== "jpeg" && imageType !== "png") {
+    //     console.log(`Unsupported image type: ${imageType}`);
+    //     return;
+    // }
 
     // Get the original Image
     const origimage = await getOriginalImage(srcKey, srcBucket);
